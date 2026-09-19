@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>썰 카드 스튜디오</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:#eef1f7;
+    font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;color:#3a4257;}
+  .app{display:flex;height:100vh;overflow:hidden;}
+
+  /* ---------- left panel ---------- */
+  .panel{width:312px;flex-shrink:0;background:#fff;border-right:1px solid #e4e9f2;overflow-y:auto;padding:16px 16px 60px;}
+  .panel::-webkit-scrollbar{width:8px;} .panel::-webkit-scrollbar-thumb{background:#dfe5ef;border-radius:8px;}
+  .brand{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:#41527a;margin-bottom:14px;}
+  .brand .logo{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#9dc2f0,#c9b6f5);}
+  .sect{border:1px solid #e9edf5;border-radius:12px;margin-bottom:10px;overflow:hidden;background:#fbfcfe;}
+  .sect > .head{display:flex;align-items:center;gap:7px;padding:9px 11px;font-size:11.5px;font-weight:800;color:#5b6c90;cursor:pointer;user-select:none;}
+  .sect > .head .chev{margin-left:auto;font-size:9px;color:#9fadc7;transition:transform .18s;}
+  .sect.closed > .head .chev{transform:rotate(-90deg);}
+  .sect > .body{padding:4px 11px 12px;}
+  .sect.closed > .body{display:none;}
+  .f{margin-bottom:11px;}
+  .f > label{display:block;font-size:10.5px;font-weight:700;color:#93a1bd;margin-bottom:5px;}
+  .f input[type=text]{width:100%;border:1px solid #e2e8f2;border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit;background:#fff;}
+  .f select{width:100%;border:1px solid #e2e8f2;border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;background:#fff;}
+  .rowf{display:flex;gap:8px;} .rowf>div{flex:1;}
+  .sl{display:flex;align-items:center;gap:8px;}
+  .sl input[type=range]{flex:1;accent-color:#7ba4dd;}
+  .sl b{font-size:10.5px;color:#93a1bd;font-weight:600;width:44px;text-align:right;}
+  .seg{display:flex;background:#eef2f9;border-radius:9px;padding:3px;gap:3px;}
+  .seg button{flex:1;border:none;background:transparent;border-radius:7px;padding:6px 2px;font-size:11px;cursor:pointer;color:#7286a8;font-family:inherit;}
+  .seg button.on{background:#fff;color:#41527a;font-weight:800;box-shadow:0 1px 3px rgba(60,80,120,.14);}
+  .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .sw{height:34px;border-radius:9px;cursor:pointer;border:2px solid transparent;transition:.15s;}
+  .sw.on{border-color:#6f9ade;box-shadow:0 2px 8px rgba(90,130,200,.3);}
+  .cc{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#5b6c90;}
+  .cc input[type=color]{width:30px;height:26px;border:none;background:none;padding:0;cursor:pointer;}
+  .chk{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#5b6c90;cursor:pointer;}
+
+  /* ---------- stage ---------- */
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 20px 40px;}
+  .stage::-webkit-scrollbar{width:8px;} .stage::-webkit-scrollbar-thumb{background:#dfe5ef;border-radius:8px;}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:4px;
+    background:rgba(255,255,255,.9);backdrop-filter:blur(12px);border:1px solid #e4e9f2;border-radius:13px;
+    padding:6px 8px;margin-bottom:18px;box-shadow:0 4px 14px rgba(70,90,130,.08);max-width:100%;}
+  .tb{border:none;background:transparent;border-radius:8px;min-width:29px;height:29px;padding:0 7px;cursor:pointer;
+    font-size:12.5px;color:#4d5f83;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:4px;}
+  .tb:hover{background:#eef3fb;}
+  .tb.act{background:#e3ecfa;color:#2f4d80;}
+  .tb b{font-weight:800;}
+  .tsel{border:1px solid #e6ebf4;background:#fff;border-radius:8px;height:29px;font-size:11.5px;padding:0 4px;color:#4d5f83;font-family:inherit;cursor:pointer;}
+  .tdiv{width:1px;height:19px;background:#e4e9f2;margin:0 3px;}
+  .tcolor{position:relative;width:29px;height:29px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;}
+  .tcolor:hover{background:#eef3fb;}
+  .tcolor input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .tcolor .bar{position:absolute;bottom:4px;left:6px;right:6px;height:3px;border-radius:2px;}
+
+  /* ---------- card ---------- */
+  #frame{width:404px;flex-shrink:0;position:relative;display:flex;align-items:stretch;
+    border-radius:22px;overflow:hidden;box-shadow:0 22px 50px rgba(50,70,110,.22);}
+  #bgLayer{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;}
+  #bgDim{position:absolute;inset:0;z-index:1;pointer-events:none;}
+  .ghost{z-index:2;position:absolute;border-radius:11px;border:1px solid rgba(255,255,255,.55);
+    background:rgba(255,255,255,.34);backdrop-filter:blur(6px);box-shadow:0 8px 22px rgba(60,80,120,.14);}
+  .ghost .gbar{height:15px;border-bottom:1px solid rgba(255,255,255,.5);
+    background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.18));border-radius:11px 11px 0 0;}
+
+  #win{position:relative;z-index:3;flex:1 1 auto;width:100%;display:flex;flex-direction:column;border-radius:13px;overflow:hidden;
+    border:1px solid rgba(255,255,255,.75);box-shadow:0 14px 34px rgba(50,70,120,.20);}
+  #titlebar{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:0 10px;height:33px;
+    border-bottom:1px solid rgba(120,140,180,.14);
+    background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,0));}
+  #tbIcon{font-size:12px;line-height:1;}
+  #tbTitle{font-size:11.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .griddots{display:grid;grid-template-columns:repeat(3,3px);gap:2px;margin:0 auto;opacity:.42;}
+  .griddots i{width:3px;height:3px;border-radius:50%;background:currentColor;display:block;}
+  /* window buttons are built from real elements (no ::before/::after) so the PNG export matches */
+  .wbtns{display:flex;align-items:center;gap:9px;opacity:.55;}
+  .wbtns .b{width:11px;height:11px;position:relative;display:block;}
+  .wbtns .b span{position:absolute;display:block;}
+  .wbtns .min .l1{left:1px;right:1px;top:5px;height:1.4px;background:currentColor;border-radius:1px;}
+  .wbtns .max .l1{left:1.5px;right:1.5px;top:1.5px;bottom:1.5px;border:1.4px solid currentColor;border-radius:2px;}
+  .wbtns .cls .l1,.wbtns .cls .l2{left:0;right:0;top:5px;height:1.4px;background:currentColor;border-radius:1px;}
+  .wbtns .cls .l1{transform:rotate(45deg);} .wbtns .cls .l2{transform:rotate(-45deg);}
+
+  #tagRow{flex:0 0 auto;padding:11px 0 12px;display:flex;flex-wrap:wrap;gap:5px;}
+  .tagchip{display:inline-block;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;
+    letter-spacing:.3px;max-width:100%;white-space:normal;word-break:break-word;line-height:1.6;}
+  .tagchip.plain{padding:0;background:none !important;border-radius:0;}
+
+  #editorWrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:flex-start;}
+  #editor{flex:0 1 auto;min-height:0;width:100%;overflow-y:auto;outline:none;word-break:break-word;
+    transform-origin:top left;}
+  #editor img{cursor:pointer;}
+  #editor img.selimg{outline:2px solid #6f9ade;outline-offset:2px;}
+
+  /* tag manager in the panel */
+  .tagPool{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+  .tagPool .tp{display:inline-flex;align-items:center;gap:5px;background:#eef2f9;color:#4d5f83;
+    font-size:11px;border-radius:16px;padding:4px 6px 4px 10px;}
+  .tagPool .tp b{cursor:pointer;color:#9aa8c2;font-weight:700;}
+  .tagPool .tp b:hover{color:#e06a7a;}
+
+  /* image toolbar */
+  #imgBar{display:none;align-items:center;flex-wrap:wrap;gap:8px;background:#fff;border:1px solid #dbe6f5;
+    border-radius:12px;padding:8px 11px;margin:-8px 0 16px;box-shadow:0 4px 14px rgba(70,90,130,.08);
+    font-size:11.5px;color:#4d5f83;max-width:100%;}
+  #imgBar.show{display:flex;}
+  #imgBar select,#imgBar input[type=range]{font-family:inherit;}
+  #imgBar select{border:1px solid #e6ebf4;border-radius:7px;height:26px;font-size:11.5px;padding:0 4px;}
+  #imgBar .lb{font-size:10.5px;color:#93a1bd;font-weight:700;}
+  #imgBar button{border:1px solid #dbe3ef;background:#fff;border-radius:7px;padding:4px 9px;cursor:pointer;
+    font-size:11px;color:#4d5f83;font-family:inherit;}
+  #imgBar button.danger{color:#c0566a;border-color:#f0cdd4;}
+  #imgBar input[type=number]{border:1px solid #e6ebf4;border-radius:7px;height:26px;width:56px;
+    font-size:11.5px;padding:0 5px;font-family:inherit;color:#4d5f83;}
+
+  /* drag handles drawn over the selected image */
+  #imgHandles{position:fixed;z-index:60;pointer-events:none;display:none;left:0;top:0;}
+  #imgHandles.show{display:block;}
+  #imgHandles .hbox{position:absolute;border:1.5px solid #6f9ade;border-radius:4px;}
+  #imgHandles .h{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;background:#fff;
+    border:1.5px solid #6f9ade;border-radius:3px;pointer-events:auto;box-shadow:0 1px 3px rgba(40,70,120,.28);}
+  #imgHandles .h.nw{cursor:nwse-resize;} #imgHandles .h.se{cursor:nwse-resize;}
+  #imgHandles .h.ne{cursor:nesw-resize;} #imgHandles .h.sw{cursor:nesw-resize;}
+  #imgHandles .h.s{cursor:ns-resize;border-radius:6px;width:22px;margin-left:-11px;}
+  #imgHandles .tip{position:absolute;background:rgba(40,50,75,.92);color:#fff;font-size:10.5px;
+    padding:3px 8px;border-radius:7px;white-space:nowrap;transform:translate(-50%,-50%);}
+  /* The scrollbar must never take layout width: the exported PNG has no scrollbar,
+     so a visible one would re-wrap every line and the save would not match the screen. */
+  #editor{scrollbar-width:none;-ms-overflow-style:none;}
+  #editor::-webkit-scrollbar{width:0;height:0;display:none;}
+  #editor p{margin:0 0 .95em;}
+  #editor p:last-child{margin-bottom:0;}
+  #editor.indent p{text-indent:1em;}
+  #editor img{max-width:100%;max-height:210px;width:auto;border-radius:10px;display:block;margin:.7em auto;}
+  #editor blockquote{margin:.7em 0;padding:8px 12px;border-radius:9px;
+    background:var(--qbg,rgba(130,150,190,.12));color:var(--qfg,inherit);
+    border-left:var(--qbarw,0px) solid var(--qbar,transparent);}
+
+  /* ---- reusable colour popover ---- */
+  .tcbtn{display:inline-flex;align-items:center;height:29px;border-radius:8px;overflow:hidden;}
+  .tcbtn .main{border:none;background:transparent;padding:0 6px;height:29px;cursor:pointer;font-size:12.5px;
+    color:#4d5f83;font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;}
+  .tcbtn .main .bar{width:16px;height:3px;border-radius:2px;margin-top:2px;}
+  .tcbtn .arw{border:none;background:transparent;cursor:pointer;font-size:8px;color:#8fa0bd;padding:0 4px;height:29px;}
+  .tcbtn:hover{background:#eef3fb;}
+  #colorPop{position:fixed;z-index:90;display:none;background:#fff;border:1px solid #e2e8f2;border-radius:12px;
+    padding:10px;box-shadow:0 10px 30px rgba(50,70,120,.18);width:214px;}
+  #colorPop.show{display:block;}
+  #colorPop .lab{font-size:9.5px;font-weight:800;color:#a3b0c8;margin:0 0 5px;}
+  #colorPop .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;}
+  #colorPop .sw2{width:100%;aspect-ratio:1;border-radius:5px;cursor:pointer;border:1px solid rgba(0,0,0,.10);}
+  #colorPop .sw2:hover{transform:scale(1.14);}
+  #colorPop .foot{display:flex;align-items:center;gap:5px;margin-top:9px;}
+  #colorPop .foot input[type=text]{flex:1;border:1px solid #e2e8f2;border-radius:7px;padding:5px 7px;
+    font-size:11px;font-family:inherit;width:10px;}
+  #colorPop .foot button{border:1px solid #dbe3ef;background:#fff;border-radius:7px;padding:5px 8px;
+    cursor:pointer;font-size:10.5px;color:#4d5f83;font-family:inherit;}
+  #colorPop .foot input[type=color]{width:28px;height:26px;border:none;background:none;padding:0;cursor:pointer;}
+
+  #foot{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding-top:11px;margin-top:12px;}
+  #foot .work{font-size:11.5px;font-weight:800;letter-spacing:.1px;}
+  #foot .who{font-size:10px;opacity:.62;margin-top:2px;}
+  #foot .plat{font-size:9px;font-weight:800;letter-spacing:1.1px;opacity:.5;}
+  .rgrip{position:absolute;right:7px;bottom:6px;display:grid;grid-template-columns:repeat(3,3px);gap:2px;opacity:.32;z-index:4;}
+  .rgrip i{width:3px;height:3px;border-radius:50%;background:currentColor;}
+  .rgrip i.hide{opacity:0;}
+
+  /* ---------- status ---------- */
+  .status{margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .warn{display:none;align-items:center;gap:9px;font-size:11.5px;color:#9a5c2a;background:#fff4e5;border:1px solid #ffe0b8;
+    padding:8px 12px;border-radius:11px;}
+  .warn.show{display:flex;}
+  .warn button{border:none;background:#f0a860;color:#fff;font-weight:800;font-size:11px;border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit;}
+  .pager{display:none;align-items:center;gap:12px;font-size:12px;color:#5b6c90;}
+  .pager.show{display:flex;}
+  .pager button{border:1px solid #dbe3ef;background:#fff;border-radius:8px;padding:4px 11px;cursor:pointer;font-size:12px;}
+  .pager button:disabled{opacity:.35;cursor:default;}
+  .actions{display:flex;gap:9px;}
+  .save{border:none;border-radius:12px;padding:11px 24px;font-size:13px;font-weight:800;cursor:pointer;color:#fff;font-family:inherit;
+    background:linear-gradient(135deg,#7ba4dd,#a68ce0);box-shadow:0 8px 20px rgba(120,140,220,.32);}
+  .ghostbtn{border:1px solid #dbe3ef;background:#fff;border-radius:12px;padding:11px 18px;font-size:12.5px;cursor:pointer;color:#5b6c90;font-family:inherit;}
+  .tip{font-size:10.5px;color:#9aa7bf;text-align:center;max-width:404px;line-height:1.65;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= LEFT PANEL ================= -->
+  <aside class="panel">
+    <div class="brand"><span class="logo"></span>썰 카드 스튜디오</div>
+
+    <div class="sect">
+      <div class="head">🪟 창 · 정보 <span class="chev">▼</span></div>
+      <div class="body">
+        <div class="rowf">
+          <div class="f" style="flex:0 0 62px;"><label>아이콘</label><input type="text" id="winIcon" value="🎀"></div>
+          <div class="f"><label>창 제목</label><input type="text" id="winTitle" value="excerpt.txt"></div>
+        </div>
+        <div class="f"><label>상단 태그 (엔터 또는 추가 버튼 · 한 줄 = 태그 1개)</label>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="tagText" placeholder="예: ✧ 오늘의 발췌" style="flex:1;">
+            <button type="button" id="tagAdd" style="border:1px solid #e2e8f2;background:#fff;border-radius:8px;padding:0 11px;cursor:pointer;font-size:12px;color:#4d5f83;font-family:inherit;font-weight:700;">추가</button>
+          </div>
+          <div class="tagPool" id="tagPool"></div>
+        </div>
+        <div class="f"><label>태그 정렬</label>
+          <div class="seg" id="tagAlignSeg">
+            <button data-a="flex-start" class="on">왼쪽</button>
+            <button data-a="center">가운데</button>
+            <button data-a="flex-end">오른쪽</button>
+          </div>
+        </div>
+        <div class="f"><label>태그 모양</label>
+          <div class="seg" id="tagStyleSeg">
+            <button data-s="chip" class="on">칩(알약)</button>
+            <button data-s="plain">텍스트만</button>
+          </div>
+        </div>
+        <div class="rowf">
+          <div class="f"><label>작품명</label><input type="text" id="workName" value="작품명"></div>
+          <div class="f"><label>작가 / 캐릭터</label><input type="text" id="whoName" value=""></div>
+        </div>
+        <div class="f"><label>플랫폼 배지</label><input type="text" id="platName" value="MYAPP"></div>
+        <label class="chk"><input type="checkbox" id="showBtns" checked> 창 버튼(— □ ✕) 표시</label>
+        <label class="chk" style="margin-top:7px;"><input type="checkbox" id="showGrip"> 오른쪽 아래 점 표시</label>
+        <label class="chk" style="margin-top:7px;"><input type="checkbox" id="showGhost" checked> 뒤에 창 겹치기 효과</label>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="head">🎨 배경 <span class="chev">▼</span></div>
+      <div class="body">
+        <div class="f"><label>배경 유형</label>
+          <div class="seg" id="bgTypeSeg">
+            <button data-t="grad" class="on">그라데이션</button>
+            <button data-t="img">이미지</button>
+          </div>
+        </div>
+
+        <div id="gradBox">
+          <div class="swatches" id="swatches"></div>
+          <div class="f" style="margin-top:11px;">
+            <div class="cc"><span>색 1</span><input type="color" id="bg1" value="#dbe7f8">
+              <span style="margin-left:auto;">색 2</span><input type="color" id="bg2" value="#eadff6"></div>
+          </div>
+          <div class="f"><label>각도</label><div class="sl"><input type="range" id="bgAngle" min="0" max="360" value="150"><b id="bgAngleV">150°</b></div></div>
+        </div>
+
+        <div id="imgBox" style="display:none;">
+          <div class="f">
+            <button type="button" id="bgImgBtn" style="width:100%;padding:9px;border-radius:9px;border:1px dashed #cdd8ea;background:#fff;cursor:pointer;font-size:12px;color:#5b6c90;font-family:inherit;font-weight:700;">배경 이미지 불러오기</button>
+            <input type="file" id="bgImgFile" accept="image/*" style="display:none;">
+            <div id="bgImgName" style="font-size:10px;color:#a8b4cb;margin-top:5px;"></div>
+          </div>
+          <div class="f"><label>흐림(블러)</label><div class="sl"><input type="range" id="bgBlur" min="0" max="30" value="8"><b id="bgBlurV">8px</b></div></div>
+          <div class="f"><label>어둡게</label><div class="sl"><input type="range" id="bgDark" min="0" max="70" value="0"><b id="bgDarkV">0%</b></div></div>
+        </div>
+
+        <div class="f" style="margin-top:11px;"><label>바깥 여백</label><div class="sl"><input type="range" id="framePad" min="12" max="60" value="26"><b id="framePadV">26</b></div></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="head">🪞 창 스타일 <span class="chev">▼</span></div>
+      <div class="body">
+        <div class="f"><label>재질</label>
+          <div class="seg" id="glassSeg">
+            <button data-g="light" class="on">라이트</button>
+            <button data-g="dark">다크</button>
+            <button data-g="solid">솔리드</button>
+            <button data-g="none">창 없음</button>
+          </div>
+        </div>
+        <div class="f"><label>창 투명도</label><div class="sl"><input type="range" id="winAlpha" min="30" max="100" value="74"><b id="winAlphaV">74%</b></div></div>
+        <div class="f"><label>안쪽 여백</label><div class="sl"><input type="range" id="winPad" min="14" max="40" value="22"><b id="winPadV">22</b></div></div>
+        <div class="f"><div class="cc"><span>기본 글자색</span><input type="color" id="baseColor" value="#39435c"></div></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="head">🏷 태그 · 인용구 색 <span class="chev">▼</span></div>
+      <div class="body">
+        <label class="chk"><input type="checkbox" id="tagAuto" checked> 태그 색 자동 (글자색에 맞춤)</label>
+        <div class="f" style="margin-top:8px;">
+          <div class="cc"><span>태그 글자</span><input type="color" id="tagFg" value="#39435c">
+            <span style="margin-left:auto;">태그 배경</span><input type="color" id="tagBg" value="#e6ecf7"></div>
+        </div>
+        <div class="divider" style="margin:12px 0;"></div>
+        <label class="chk"><input type="checkbox" id="qAuto" checked> 인용구 색 자동</label>
+        <div class="f" style="margin-top:8px;">
+          <div class="cc"><span>인용 배경</span><input type="color" id="qBg" value="#eef1f8">
+            <span style="margin-left:auto;">인용 글자</span><input type="color" id="qFg" value="#39435c"></div>
+        </div>
+        <div class="f">
+          <div class="cc"><input type="checkbox" id="qBarOn"><span>왼쪽 강조선</span>
+            <input type="color" id="qBar" value="#8aa4cc" style="margin-left:auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="head">📐 비율 · 넘침 <span class="chev">▼</span></div>
+      <div class="body">
+        <div class="f"><label>카드 비율 (4:6 ~ 6:4 고정)</label>
+          <div class="sl"><input type="range" id="ratio" min="0.667" max="1.5" step="0.005" value="0.8"><b id="ratioV">0.80</b></div>
+          <div class="seg" id="ratioQuick" style="margin-top:6px;">
+            <button data-r="0.667">4:6</button><button data-r="0.8" class="on">4:5</button>
+            <button data-r="1">1:1</button><button data-r="1.25">5:4</button><button data-r="1.5">6:4</button>
+          </div>
+          <div style="font-size:10px;color:#a8b4cb;margin-top:5px;" id="ratioNote"></div>
+        </div>
+        <div class="f"><label>카드 크기 (담는 글자 양)</label>
+          <div class="sl"><input type="range" id="sizeBase" min="320" max="560" step="4" value="404"><b id="sizeBaseV">404</b></div>
+          <div style="font-size:10px;color:#a8b4cb;margin-top:3px;line-height:1.5;">비율을 바꿔도 넓이(면적)는 그대로 유지돼서, 세로 → 가로로 바꿔도 같은 분량이 담깁니다.</div>
+        </div>
+        <div class="f"><label>넘칠 때 처리</label>
+          <div class="seg" id="ovSeg">
+            <button data-o="shrink" class="on">자동 축소</button>
+            <button data-o="pages">여러 장 분할</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="head">🔤 기본 서식 <span class="chev">▼</span></div>
+      <div class="body">
+        <div class="f"><label>기본 폰트</label>
+          <select id="baseFont">
+            <option value='-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif'>기본 고딕</option>
+            <option value='"Nanum Myeongjo",Georgia,serif'>명조체</option>
+            <option value='"Apple SD Gothic Neo","Malgun Gothic",sans-serif'>둥근 고딕</option>
+            <option value='"D2Coding",Consolas,monospace'>고정폭</option>
+          </select>
+        </div>
+        <div class="f">
+          <button type="button" id="fontAddBtn" style="width:100%;padding:8px;border-radius:9px;border:1px dashed #cdd8ea;background:#fff;cursor:pointer;font-size:11.5px;color:#5b6c90;font-family:inherit;font-weight:700;">＋ 폰트 파일 추가 (ttf/otf/woff)</button>
+          <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/*" multiple style="display:none;">
+          <div id="fontList" style="font-size:10px;color:#a8b4cb;margin-top:5px;line-height:1.6;"></div>
+        </div>
+        <div class="f"><label>기본 글자 크기 (직접 입력 가능)</label>
+          <div class="sl"><input type="range" id="baseSize" min="6" max="60" step="0.5" value="12">
+            <input type="number" id="baseSizeNum" min="4" max="200" step="0.5" value="12"
+                   style="width:52px;border:1px solid #e2e8f2;border-radius:7px;padding:4px 5px;font-size:11.5px;font-family:inherit;">
+          </div>
+        </div>
+        <div class="f"><label>기본 줄간격</label><div class="sl"><input type="range" id="baseLh" min="1.3" max="2.4" step="0.05" value="1.8"><b id="baseLhV">1.80</b></div></div>
+        <div class="f"><label>기본 자간</label><div class="sl"><input type="range" id="baseLs" min="-0.6" max="2" step="0.05" value="0"><b id="baseLsV">0</b></div></div>
+        <label class="chk"><input type="checkbox" id="indentChk" checked> 문단 첫 줄 들여쓰기</label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= STAGE ================= -->
+  <main class="stage">
+
+    <div class="toolbar">
+      <select class="tsel" id="tFont" title="글꼴">
+        <option value="">글꼴</option>
+        <option value='-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif'>고딕</option>
+        <option value='"Nanum Myeongjo",Georgia,serif'>명조</option>
+        <option value='"D2Coding",Consolas,monospace'>고정폭</option>
+      </select>
+      <input class="tsel" id="tSize" list="sizeOpts" type="number" min="4" max="200" step="0.5"
+             placeholder="크기" title="글자 크기 (직접 입력 가능)" style="width:74px;padding:0 4px 0 7px;">
+      <datalist id="sizeOpts">
+        <option>9</option><option>10</option><option>11</option><option>12</option><option>13</option>
+        <option>14</option><option>15</option><option>16</option><option>18</option><option>20</option>
+        <option>24</option><option>28</option><option>32</option><option>40</option><option>48</option>
+      </datalist>
+      <div class="tdiv"></div>
+      <button class="tb" data-cmd="bold" title="굵게"><b>B</b></button>
+      <button class="tb" data-cmd="italic" title="기울임"><i>I</i></button>
+      <button class="tb" data-cmd="underline" title="밑줄"><u>U</u></button>
+      <button class="tb" data-cmd="strikeThrough" title="취소선"><s>S</s></button>
+      <div class="tdiv"></div>
+      <span class="tcbtn" title="글자색 — 버튼은 최근 색 바로 적용, ▾ 는 색 목록">
+        <button class="main" id="tForeApply">가<span class="bar" id="tForeBar" style="background:#39435c;"></span></button>
+        <button class="arw" id="tForeOpen">▼</button>
+      </span>
+      <span class="tcbtn" title="형광펜 — 버튼은 최근 색 바로 적용, ▾ 는 색 목록">
+        <button class="main" id="tBackApply">🖍<span class="bar" id="tBackBar" style="background:#ffe9a8;"></span></button>
+        <button class="arw" id="tBackOpen">▼</button>
+      </span>
+      <div class="tdiv"></div>
+      <button class="tb" data-cmd="justifyLeft" title="왼쪽 정렬">⬅</button>
+      <button class="tb" data-cmd="justifyCenter" title="가운데 정렬">↔</button>
+      <button class="tb" data-cmd="justifyRight" title="오른쪽 정렬">➡</button>
+      <div class="tdiv"></div>
+      <button class="tb vb on" data-v="flex-start" title="위쪽 붙이기">⤒</button>
+      <button class="tb vb" data-v="center" title="세로 가운데">⇳</button>
+      <button class="tb vb" data-v="flex-end" title="아래쪽 붙이기">⤓</button>
+      <div class="tdiv"></div>
+      <select class="tsel" id="tLh" title="줄간격"><option value="">줄간격</option>
+        <option>1.3</option><option>1.5</option><option>1.7</option><option>1.85</option><option>2.0</option><option>2.2</option></select>
+      <select class="tsel" id="tLs" title="자간"><option value="">자간</option>
+        <option>-0.4</option><option>-0.2</option><option>0</option><option>0.3</option><option>0.6</option><option>1</option><option>1.5</option></select>
+      <div class="tdiv"></div>
+      <button class="tb" id="tQuote" title="인용구">❝</button>
+      <button class="tb" id="tImg" title="이미지 삽입" style="font-size:11.5px;font-weight:700;">사진</button>
+      <button class="tb" id="tClear" title="서식 지우기">✕서식</button>
+      <input type="file" id="imgFile" accept="image/*" style="display:none;">
+    </div>
+
+    <div id="imgBar">
+      <span class="lb">이미지</span>
+      <span>크기</span><input type="range" id="imW" min="10" max="100" value="100" style="width:80px;">
+      <input type="number" id="imWNum" min="5" max="100" step="1" value="100"><span style="font-size:10.5px;color:#93a1bd;">%</span>
+      <span>비율</span>
+      <select id="imRatio">
+        <option value="">원본</option><option value="custom">직접 조절</option>
+        <option value="1/1">1:1</option><option value="4/3">4:3</option>
+        <option value="3/4">3:4</option><option value="16/9">16:9</option><option value="9/16">9:16</option>
+      </select>
+      <span>모서리</span><input type="range" id="imRad" min="0" max="80" value="10" style="width:64px;">
+      <input type="number" id="imRadNum" min="0" max="200" step="1" value="10"><span style="font-size:10.5px;color:#93a1bd;">px</span>
+      <span>정렬</span>
+      <select id="imAlign"><option value="center">가운데</option><option value="left">왼쪽</option><option value="right">오른쪽</option></select>
+      <button id="imReset">위치 초기화</button>
+      <button id="imDel" class="danger">삭제</button>
+      <span style="font-size:10px;color:#a8b4cb;">＊모서리 점을 끌면 크기, 아래 점을 끌면 높이(크롭), 이미지 안을 끌면 잘릴 위치가 바뀌어요</span>
+    </div>
+
+    <div id="colorPop">
+      <div class="lab" id="cpRecentLab">최근 사용</div>
+      <div class="grid" id="cpRecent"></div>
+      <div class="lab" style="margin-top:9px;">팔레트</div>
+      <div class="grid" id="cpPresets"></div>
+      <div class="foot">
+        <input type="text" id="cpHex" placeholder="#RRGGBB" maxlength="9">
+        <button id="cpApply">적용</button>
+        <input type="color" id="cpNative" title="직접 고르기">
+        <button id="cpNone" style="display:none;">없음</button>
+      </div>
+    </div>
+
+    <div id="imgHandles">
+      <div class="hbox"></div>
+      <div class="h nw" data-h="nw"></div><div class="h ne" data-h="ne"></div>
+      <div class="h sw" data-h="sw"></div><div class="h se" data-h="se"></div>
+      <div class="h s"  data-h="s"></div>
+      <div class="tip"></div>
+    </div>
+
+    <div id="frame">
+      <div id="bgLayer"></div>
+      <div id="bgDim"></div>
+      <div class="ghost" id="ghost1"><div class="gbar"></div></div>
+      <div class="ghost" id="ghost2"><div class="gbar"></div></div>
+      <div id="win">
+        <div id="titlebar">
+          <span id="tbIcon">🎀</span>
+          <span id="tbTitle">excerpt.txt</span>
+          <span style="flex:1;"></span>
+          <span class="wbtns" id="wbtns">
+            <span class="b min"><span class="l1"></span></span>
+            <span class="b max"><span class="l1"></span></span>
+            <span class="b cls"><span class="l1"></span><span class="l2"></span></span>
+          </span>
+        </div>
+        <div id="winBody" style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0;">
+          <div id="tagRow"><span class="tagchip">✧ 오늘의 발췌</span></div>
+          <div id="editorWrap">
+            <div id="editor" contenteditable="true" spellcheck="false"><p>여기에 바로 글을 쓰면 돼요. 원하는 부분을 드래그해서 위 툴바로 굵게, 색, 크기, 줄간격, 자간을 바꿀 수 있어요.</p><p>문단을 나누려면 엔터를 누르고, 이미지는 🖼 버튼으로 커서 위치에 넣을 수 있어요.</p></div>
+          </div>
+          <div id="foot">
+            <div><div class="work" id="fWork">작품명</div><div class="who" id="fWho"></div></div>
+            <div class="plat" id="fPlat">MYAPP</div>
+          </div>
+        </div>
+        <span class="rgrip" id="rgrip">
+          <i class="hide"></i><i class="hide"></i><i></i>
+          <i class="hide"></i><i></i><i></i>
+          <i></i><i></i><i></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="warn" id="warn"><span>내용이 카드를 넘쳤어요.</span><button id="warnFix">해결하기</button></div>
+      <div class="pager" id="pager">
+        <button id="pPrev">◀</button><span id="pInd">1 / 1</span><button id="pNext">▶</button>
+        <button id="pResplit" style="margin-left:6px;">다시 나누기</button>
+        <button id="pBack">한 장으로 합치기</button>
+        <span style="font-size:10.5px;color:#9aa7bf;">＊나눠진 페이지 안에서 그대로 수정할 수 있어요</span>
+      </div>
+      <div class="actions">
+        <button class="save" id="saveBtn">이 카드 PNG 저장</button>
+        <button class="ghostbtn" id="pageBtn">여러 장으로 나누기</button>
+      </div>
+      <label class="chk" id="saveAllWrap" style="display:none;font-size:11.5px;color:#5b6c90;align-items:center;gap:7px;">
+        <input type="checkbox" id="saveAll"> 저장할 때 전체 페이지를 한 번에 내려받기
+      </label>
+      <div class="tip">파일을 다운로드해서 브라우저로 직접 열면 PNG 저장이 동작해요. 글은 카드 안에서 바로 타이핑하세요.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============ refs ============ */
+const $ = id => document.getElementById(id);
+const frame=$('frame'), win=$('win'), editor=$('editor'), winBody=$('winBody'), editorWrap=$('editorWrap');
+const titlebar=$('titlebar'), tagRow=$('tagRow'), foot=$('foot');
+const ghost1=$('ghost1'), ghost2=$('ghost2'), rgrip=$('rgrip');
+
+let glass='light', ovMode='shrink', pageMode=false, pages=[], curPage=0, savedHTML='';
+let bgType='grad', bgImgData=null, bgImgSrc=null, customFonts=[];
+let tags=['✧ 오늘의 발췌'], tagAlign='flex-start', tagStyle='chip', vAlign='flex-start';
+let selImg=null, edScale=1;
+const SAFE_MIN=10;   // browsers refuse to draw text below their own minimum font size,
+                     // so anything under this is rendered bigger and scaled back down.
+                     // Kept as low as possible: at 10px and above nothing is scaled,
+                     // which keeps the exported text perfectly crisp.
+
+/* ============ gradient presets ============ */
+const GRADS=[
+  ['#dbe7f8','#eadff6','블루 미스트'], ['#d9ecfb','#eef7ff','하늘'],      ['#c8dcf6','#b7cdf0','파랑'],
+  ['#d9f0e3','#ecf7dc','연두'],       ['#dceee0','#c9e4d6','세이지'],     ['#fff4d1','#ffe7b3','노랑'],
+  ['#fdf6d9','#f6e8c8','레몬크림'],   ['#f1e3d1','#e0cbb3','베이지'],     ['#e9dccc','#d3bda4','모카'],
+  ['#ffe6d3','#ffd7e8','피치'],       ['#e9dcfa','#fcdaee','라벤더'],     ['#2a2f45','#4b3a60','미드나잇']
+];
+const swWrap=$('swatches');
+GRADS.forEach((g,i)=>{
+  const d=document.createElement('div');
+  d.className='sw'+(i===0?' on':'');
+  d.title=g[2];
+  d.style.background=`linear-gradient(140deg,${g[0]},${g[1]})`;
+  d.onmousedown=e=>e.preventDefault();           // keep the editor's text selection alive
+  d.onclick=()=>{
+    document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on')); d.classList.add('on');
+    $('bg1').value=g[0]; $('bg2').value=g[1];
+    if(g[2]==='미드나잇'){ setGlass('dark'); $('baseColor').value='#eceaf3'; }
+    paint();
+  };
+  swWrap.appendChild(d);
+});
+
+/* ============ collapsible sections ============ */
+document.querySelectorAll('.sect > .head').forEach(h=>{
+  h.onclick=()=>h.parentElement.classList.toggle('closed');
+});
+
+/* ============ paint ============ */
+function hexA(hex,a){const c=hex.replace('#','');
+  return `rgba(${parseInt(c.substr(0,2),16)},${parseInt(c.substr(2,2),16)},${parseInt(c.substr(4,2),16)},${a})`;}
+
+function paint(){
+  /* Area-preserving sizing: the card keeps the SAME surface area at every ratio,
+     so turning a portrait card into a landscape one widens it instead of
+     throwing text away — the same amount of text still fits. */
+  const ratio=parseFloat($('ratio').value);
+  const P=+$('sizeBase').value;            // width the card would have at 4:5
+  const area=P*P/0.8;
+  const cw=Math.round(Math.sqrt(area*ratio));
+  const ch=Math.round(cw/ratio);
+  frame.style.aspectRatio='auto';
+  frame.style.width=cw+'px';
+  frame.style.height=ch+'px';
+  $('ratioV').textContent=ratio.toFixed(2);
+  $('sizeBaseV').textContent=P;
+  $('ratioNote').textContent=`${ratio<1?'세로형':ratio>1?'가로형':'정사각'} · ${cw}×${ch}px · 허용 0.667(4:6) ~ 1.5(6:4)`;
+  document.querySelectorAll('#ratioQuick button').forEach(b=>
+    b.classList.toggle('on', Math.abs(parseFloat(b.dataset.r)-ratio)<0.006));
+
+  const fp=+$('framePad').value; $('framePadV').textContent=fp;
+  frame.style.padding=fp+'px';
+  $('bgAngleV').textContent=$('bgAngle').value+'°';
+  $('bgBlurV').textContent=$('bgBlur').value+'px';
+  $('bgDarkV').textContent=$('bgDark').value+'%';
+  if(bgType==='img' && bgImgData){
+    $('bgLayer').style.backgroundImage=`url(${bgImgData})`;
+    $('bgLayer').style.backgroundColor='#dfe6f0';
+    $('bgDim').style.background=`rgba(0,0,0,${(+$('bgDark').value)/100})`;
+  }else{
+    $('bgLayer').style.backgroundImage='none';
+    $('bgLayer').style.background=`linear-gradient(${$('bgAngle').value}deg, ${$('bg1').value}, ${$('bg2').value})`;
+    $('bgDim').style.background='transparent';
+  }
+
+  const alpha=+$('winAlpha').value/100; $('winAlphaV').textContent=$('winAlpha').value+'%';
+  const wp=+$('winPad').value; $('winPadV').textContent=wp;
+  const dark = glass==='dark';
+  const base=$('baseColor').value;
+
+  const bare = glass==='none';            // no window at all — text straight on the background
+  if(bare){
+    win.style.background='transparent'; win.style.backdropFilter='none';
+    win.style.border='none'; win.style.boxShadow='none';
+  }else if(glass==='solid'){
+    win.style.background = dark? '#1e2130' : '#ffffff';
+    win.style.backdropFilter='none';
+    win.style.border='1px solid'; win.style.boxShadow='0 14px 34px rgba(50,70,120,.20)';
+  }else{
+    win.style.background = dark ? `rgba(26,28,40,${alpha})` : `rgba(255,255,255,${alpha})`;
+    win.style.backdropFilter='blur(16px)';
+    win.style.border='1px solid'; win.style.boxShadow='0 14px 34px rgba(50,70,120,.20)';
+  }
+  titlebar.style.display = bare? 'none':'flex';
+  win.style.borderColor = dark? 'rgba(255,255,255,.14)':'rgba(255,255,255,.8)';
+  win.style.color=base;
+  winBody.style.padding=`0 ${wp}px ${Math.max(12,wp-6)}px`;
+  titlebar.style.padding=`0 ${Math.max(9,wp-10)}px`;
+  titlebar.style.borderBottomColor = dark? 'rgba(255,255,255,.10)':'rgba(120,140,180,.14)';
+
+  $('tbIcon').textContent=$('winIcon').value;
+  $('tbTitle').textContent=$('winTitle').value;
+  $('tbTitle').style.color=hexA(base,.85);
+  $('wbtns').style.display=$('showBtns').checked?'flex':'none';
+
+  tagRow.style.display = tags.length? 'flex':'none';
+  tagRow.style.justifyContent = tagAlign;
+  const tagAuto=$('tagAuto').checked;
+  const tFg = tagAuto ? hexA(base,.9) : $('tagFg').value;
+  const tBg = tagAuto ? (dark?'rgba(255,255,255,.11)':'rgba(90,120,180,.11)') : $('tagBg').value;
+  tagRow.innerHTML = tags.map(t=>
+    `<span class="tagchip${tagStyle==='plain'?' plain':''}" style="color:${tFg};background:${tBg}">${t.replace(/</g,'&lt;')}</span>`
+  ).join('');
+
+  /* blockquote colours (CSS variables so every quote in the card follows) */
+  const qAuto=$('qAuto').checked;
+  editor.style.setProperty('--qbg', qAuto ? (dark?'rgba(255,255,255,.10)':'rgba(130,150,190,.12)') : $('qBg').value);
+  editor.style.setProperty('--qfg', qAuto ? base : $('qFg').value);
+  editor.style.setProperty('--qbarw', $('qBarOn').checked ? '3px' : '0px');
+  editor.style.setProperty('--qbar', qAuto ? hexA(base,.35) : $('qBar').value);
+
+  $('fWork').textContent=$('workName').value;
+  $('fWho').textContent=$('whoName').value;
+  $('fWho').style.display=$('whoName').value?'block':'none';
+  $('fPlat').textContent=$('platName').value;
+  foot.style.borderTop=`1px solid ${hexA(base,.14)}`;
+
+  // ghost windows
+  const show=$('showGhost').checked && !bare;   // floating ghosts make no sense without a window
+  [ghost1,ghost2].forEach(g=>g.style.display=show?'block':'none');
+  if(show){
+    const o=Math.max(7,Math.round(fp*0.42));           // how far the ghosts peek out
+    ghost1.style.top=(fp-o)+'px';  ghost1.style.bottom=(fp+o*1.6)+'px';
+    ghost1.style.left=(fp+o*0.7)+'px'; ghost1.style.right=(fp-o)+'px';
+    ghost1.style.transform='rotate(-1.4deg)';
+    ghost2.style.top=(fp+o*1.4)+'px';  ghost2.style.bottom=(fp-o*0.8)+'px';
+    ghost2.style.left=(fp-o*0.9)+'px'; ghost2.style.right=(fp+o*0.9)+'px';
+    ghost2.style.transform='rotate(1.6deg)';
+    const gb = dark? 'rgba(255,255,255,.13)':'rgba(255,255,255,.40)';
+    [ghost1,ghost2].forEach(g=>{ g.style.background=gb;
+      g.style.borderColor = dark? 'rgba(255,255,255,.16)':'rgba(255,255,255,.6)'; });
+  }
+  rgrip.style.color=base;
+  rgrip.style.display=$('showGrip').checked?'grid':'none';
+
+  // editor base typography
+  editor.style.fontFamily=$('baseFont').value;
+
+  /* --- tiny-font support ------------------------------------------------
+     Chrome/Edge enforce a "minimum font size" (often 9-10px), so simply
+     writing font-size:7px changes nothing on screen. We therefore render the
+     text at a safe size and scale the whole editor down visually, which the
+     browser's minimum can't touch — and which the PNG export reproduces. */
+  const want=baseFontSize();
+  edScale = want<SAFE_MIN ? want/SAFE_MIN : 1;
+  editor.style.fontSize = (want<SAFE_MIN ? SAFE_MIN : want)+'px';
+  editor.style.transform = edScale===1 ? 'none' : `scale(${edScale})`;
+  editor.style.width = edScale===1 ? '100%' : (100/edScale)+'%';
+  // sizes chosen from the toolbar are stored as intent and re-derived here
+  editor.querySelectorAll('[data-fs]').forEach(el=>{
+    const v=parseFloat(el.dataset.fs);
+    if(isFinite(v)&&v>0) el.style.fontSize=(v/edScale)+'px';
+  });
+
+  editor.style.lineHeight=$('baseLh').value;
+  editor.style.letterSpacing=($('baseLs').value/edScale)+'px';
+  editor.style.color=base;
+  editor.classList.toggle('indent',$('indentChk').checked);
+  editorWrap.style.justifyContent=vAlign;
+  fitEditorBox();
+  $('baseLhV').textContent=(+$('baseLh').value).toFixed(2);
+  $('baseLsV').textContent=(+$('baseLs').value).toFixed(2);
+
+  checkOverflow();
+}
+
+function setGlass(g){
+  glass=g;
+  document.querySelectorAll('#glassSeg button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));
+  if(g==='dark' && $('baseColor').value==='#39435c') $('baseColor').value='#eceaf3';
+  if(g!=='dark' && $('baseColor').value==='#eceaf3') $('baseColor').value='#39435c';
+}
+$('glassSeg').onclick=e=>{const b=e.target.closest('button'); if(!b)return; setGlass(b.dataset.g); paint();};
+
+/* ---- background type / image / baked blur ---- */
+$('bgTypeSeg').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  bgType=b.dataset.t;
+  document.querySelectorAll('#bgTypeSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  $('gradBox').style.display = bgType==='grad'?'block':'none';
+  $('imgBox').style.display  = bgType==='img' ?'block':'none';
+  paint();
+};
+$('bgImgBtn').onclick=()=>$('bgImgFile').click();
+$('bgImgFile').onchange=()=>{
+  const f=$('bgImgFile').files[0]; if(!f) return;
+  $('bgImgName').textContent=f.name;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    const im=new Image();
+    im.onload=()=>{ bgImgSrc=im; bakeBlur(); };
+    im.src=ev.target.result;
+  };
+  rd.readAsDataURL(f); $('bgImgFile').value='';
+};
+/* blur is baked into the pixels so the exported PNG keeps it */
+function bakeBlur(){
+  if(!bgImgSrc) return;
+  const r=+$('bgBlur').value;
+  const maxW=1400;
+  const scale=Math.min(1, maxW/bgImgSrc.naturalWidth);
+  const w=Math.round(bgImgSrc.naturalWidth*scale), h=Math.round(bgImgSrc.naturalHeight*scale);
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  const ctx=cv.getContext('2d');
+  if(r>0){
+    ctx.filter=`blur(${r}px)`;
+    const pad=r*2.5;                       // draw oversized so blurred edges stay opaque
+    ctx.drawImage(bgImgSrc,-pad,-pad,w+pad*2,h+pad*2);
+  }else{
+    ctx.drawImage(bgImgSrc,0,0,w,h);
+  }
+  bgImgData=cv.toDataURL('image/jpeg',0.92);
+  paint();
+}
+let blurTimer=null;
+$('bgBlur').addEventListener('input',()=>{ $('bgBlurV').textContent=$('bgBlur').value+'px';
+  clearTimeout(blurTimer); blurTimer=setTimeout(bakeBlur,90); });
+$('bgDark').addEventListener('input',paint);
+
+/* ---- custom font files ---- */
+$('fontAddBtn').onclick=()=>$('fontFile').click();
+$('fontFile').onchange=async()=>{
+  const files=Array.from($('fontFile').files||[]);
+  for(const f of files){
+    const name=f.name.replace(/\.[^.]+$/,'').replace(/["']/g,'');
+    try{
+      const dataUrl=await new Promise((res,rej)=>{
+        const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f);
+      });
+      const ff=new FontFace(name,`url(${dataUrl})`);
+      await ff.load();
+      document.fonts.add(ff);
+      const stack=`"${name}", sans-serif`;
+      if(!customFonts.some(c=>c.name===name)){
+        customFonts.push({name,stack,dataUrl});   // dataUrl is embedded into the PNG render
+        [ $('baseFont'), $('tFont') ].forEach(sel=>{
+          const o=document.createElement('option'); o.value=stack; o.textContent=name+' (내 폰트)';
+          sel.appendChild(o);
+        });
+      }
+      $('baseFont').value=stack;
+      $('fontList').textContent='추가된 폰트: '+customFonts.map(c=>c.name).join(', ');
+      paint();
+    }catch(err){ alert(`"${f.name}" 폰트를 불러오지 못했어요. (ttf/otf/woff/woff2만 가능)`); }
+  }
+  $('fontFile').value='';
+};
+$('ovSeg').onclick=e=>{const b=e.target.closest('button'); if(!b)return;
+  ovMode=b.dataset.o; document.querySelectorAll('#ovSeg button').forEach(x=>x.classList.toggle('on',x===b)); checkOverflow();};
+
+['winIcon','winTitle','workName','whoName','platName','bg1','bg2','bgAngle','framePad',
+ 'winAlpha','winPad','baseColor','ratio','sizeBase','baseFont','baseSize','baseLh','baseLs',
+ 'tagFg','tagBg','qBg','qFg','qBar']
+ .forEach(id=>$(id).addEventListener('input',paint));
+['tagAuto','qAuto','qBarOn'].forEach(id=>$(id).addEventListener('change',paint));
+
+/* base font size: slider and number box stay in sync, both accept free values */
+$('baseSize').addEventListener('input',()=>{ $('baseSizeNum').value=$('baseSize').value; paint(); });
+$('baseSizeNum').addEventListener('input',()=>{
+  const v=parseFloat($('baseSizeNum').value);
+  if(!isFinite(v)||v<=0) return;
+  $('baseSize').value=Math.min(60,Math.max(6,v));   // slider clamps, the box does not
+  editor.style.fontSize=v+'px';
+  paint();
+});
+$('ratioQuick').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  $('ratio').value=b.dataset.r; paint();
+};
+['showBtns','showGhost','showGrip','indentChk'].forEach(id=>$(id).addEventListener('change',paint));
+
+/* ---- tags ---- */
+function renderTagPool(){
+  $('tagPool').innerHTML=tags.map((t,i)=>
+    `<span class="tp">${t.replace(/</g,'&lt;')}<b data-i="${i}" title="삭제">✕</b></span>`).join('');
+}
+/* one line = one tag. No comma splitting: tags often contain commas themselves. */
+function addTags(raw){
+  const t=raw.trim();
+  if(!t) return;
+  if(!tags.includes(t)) tags.push(t);
+  $('tagText').value=''; renderTagPool(); paint();
+}
+$('tagAdd').onclick=()=>addTags($('tagText').value);
+$('tagText').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); addTags(e.target.value);} });
+$('tagPool').onclick=e=>{ const b=e.target.closest('b'); if(!b) return;
+  tags.splice(+b.dataset.i,1); renderTagPool(); paint(); };
+$('tagAlignSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return;
+  tagAlign=b.dataset.a;
+  document.querySelectorAll('#tagAlignSeg button').forEach(x=>x.classList.toggle('on',x===b)); paint(); };
+$('tagStyleSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return;
+  tagStyle=b.dataset.s;
+  document.querySelectorAll('#tagStyleSeg button').forEach(x=>x.classList.toggle('on',x===b)); paint(); };
+renderTagPool();
+
+/* ---- vertical alignment ---- */
+document.querySelectorAll('.tb.vb').forEach(b=>{
+  b.onmousedown=e=>e.preventDefault();
+  b.onclick=()=>{ vAlign=b.dataset.v;
+    document.querySelectorAll('.tb.vb').forEach(x=>x.classList.toggle('on',x===b)); paint(); };
+});
+
+/* clicking anywhere in the left panel must not destroy the editor's selection */
+document.querySelector('.panel').addEventListener('mousedown',e=>{
+  if(!e.target.closest('input,select,textarea,button')) e.preventDefault();
+});
+
+/* ============ box fitting / overflow ============ */
+/* The editor may be visually scaled, which does NOT change its layout height,
+   so we cap it with max-height and pull the leftover back with a negative
+   margin. That keeps vertical alignment honest at any font size. */
+function availHeight(){ return editorWrap.clientHeight; }
+function fitEditorBox(){
+  editor.style.maxHeight=(availHeight()/edScale)+'px';
+  const layoutH=editor.offsetHeight;
+  editor.style.marginBottom = edScale===1 ? '0px' : (layoutH*edScale-layoutH)+'px';
+}
+function isOverflowing(){ return editor.scrollHeight*edScale > availHeight()+1; }
+function checkOverflow(){
+  if(pageMode) return;
+  $('warn').classList.toggle('show', isOverflowing());
+}
+$('warnFix').onclick=()=>{ ovMode==='pages' ? buildPages() : autoShrink(); };
+
+function baseFontSize(){
+  const v=parseFloat($('baseSizeNum').value);
+  return (isFinite(v)&&v>0)? v : parseFloat($('baseSize').value);
+}
+function autoShrink(){
+  /* drive the real base-size control so the tiny-font scaling stays consistent */
+  let fs=baseFontSize(), lh=parseFloat($('baseLh').value), n=0;
+  while(isOverflowing() && fs>4 && n<90){
+    fs=Math.max(4,fs-0.4); lh=Math.max(1.2,lh-0.01);
+    $('baseSizeNum').value=fs.toFixed(1);
+    $('baseSize').value=Math.min(60,Math.max(6,fs));
+    $('baseLh').value=lh.toFixed(2);
+    paint(); n++;
+  }
+  checkOverflow();
+}
+
+/* ============ pagination (rich content, still editable) ============ */
+function commitPage(){ if(pageMode && pages.length) pages[curPage]=editor.innerHTML; }
+
+function buildPages(){
+  if(pageMode){ commitPage(); editor.innerHTML=pages.join(''); }   // re-flow from everything
+  const src=Array.from(editor.children).map(n=>n.cloneNode(true));
+  if(!src.length) return;
+  savedHTML=editor.innerHTML;
+  const probe=document.createElement('div');
+  probe.style.cssText=`position:absolute;visibility:hidden;pointer-events:none;`;
+  probe.style.width=editor.clientWidth+'px';
+  probe.style.font=getComputedStyle(editor).font;
+  probe.style.lineHeight=getComputedStyle(editor).lineHeight;
+  probe.style.letterSpacing=getComputedStyle(editor).letterSpacing;
+  probe.className=editor.className;
+  editor.parentElement.appendChild(probe);
+  const limit=availHeight()/edScale;
+
+  pages=[]; let cur=[];
+  const flush=()=>{ if(cur.length){pages.push(cur.map(n=>n.outerHTML).join('')); cur=[];} };
+  const fitsWith=(nodes)=>{ probe.innerHTML=nodes.map(n=>n.outerHTML).join(''); return probe.scrollHeight<=limit; };
+
+  src.forEach(node=>{
+    if(fitsWith([...cur,node])){ cur.push(node); return; }
+    flush();
+    if(fitsWith([node])){ cur.push(node); return; }
+    // single block too tall -> split words (text blocks only)
+    if(node.querySelector && node.querySelector('img')){ pages.push(node.outerHTML); return; }
+    const words=(node.textContent||'').split(/\s+/); let acc=[];
+    const mk=t=>{const c=node.cloneNode(false); c.textContent=t; return c;};
+    words.forEach(w=>{
+      const cand=[...acc,w];
+      if(fitsWith([...cur,mk(cand.join(' '))])) acc=cand;
+      else { if(acc.length){cur.push(mk(acc.join(' '))); flush();} acc=[w]; }
+    });
+    if(acc.length) cur.push(mk(acc.join(' ')));
+  });
+  flush();
+  probe.remove();
+  if(!pages.length) pages=[savedHTML];
+  pageMode=true; curPage=0;
+  editor.setAttribute('contenteditable','true');   // pages stay fully editable
+  $('pager').classList.add('show');
+  $('saveAllWrap').style.display='flex';
+  $('warn').classList.remove('show');
+  showPage();
+}
+function showPage(){
+  editor.innerHTML=pages[curPage];
+  $('pInd').textContent=`${curPage+1} / ${pages.length}`;
+  $('pPrev').disabled=curPage===0; $('pNext').disabled=curPage===pages.length-1;
+  selectImg(null);
+  fitEditorBox(); checkOverflow();
+}
+function goPage(i){ commitPage(); curPage=i; showPage(); }
+$('pPrev').onclick=()=>{ if(curPage>0) goPage(curPage-1); };
+$('pNext').onclick=()=>{ if(curPage<pages.length-1) goPage(curPage+1); };
+$('pResplit').onclick=()=>{ buildPages(); toast('편집한 내용으로 다시 나눴어요'); };
+$('pBack').onclick=()=>exitPages();
+$('pageBtn').onclick=()=>pageMode?exitPages():buildPages();
+function exitPages(){
+  commitPage();
+  savedHTML=pages.join('')||savedHTML;
+  pageMode=false; editor.setAttribute('contenteditable','true');
+  editor.innerHTML=savedHTML;
+  $('pager').classList.remove('show');
+  $('saveAllWrap').style.display='none';
+  fitEditorBox(); checkOverflow();
+}
+
+/* ============ rich text editing ============ */
+try{ document.execCommand('styleWithCSS',false,true); }catch(e){}
+let lastRange=null;        // most recent caret/selection inside the editor
+let lastPick=null;         // most recent NON-EMPTY selection inside the editor
+document.addEventListener('selectionchange',saveRange);
+editor.addEventListener('keyup',saveRange);
+editor.addEventListener('mouseup',saveRange);
+editor.addEventListener('input',()=>{saveRange();commitPage();checkOverflow();});
+function saveRange(){
+  const s=getSelection();
+  if(!s.rangeCount) return;
+  if(editor.contains(s.anchorNode) && editor.contains(s.focusNode)){
+    const r=s.getRangeAt(0);
+    lastRange=r.cloneRange();
+    if(!r.collapsed) lastPick=r.cloneRange();      // remember the real highlight
+  }
+}
+/* Put the caret/highlight back. wantPick=true → restore the last real highlight,
+   which survives clicking presets, sliders and colour pickers in the left panel. */
+function restore(wantPick){
+  const s=getSelection();
+  let r=null;
+  if(wantPick){
+    const cur=(s.rangeCount && editor.contains(s.anchorNode) && !s.getRangeAt(0).collapsed)
+      ? s.getRangeAt(0) : null;
+    r = cur || lastPick || lastRange;
+  }else{
+    r = lastRange || lastPick;
+  }
+  editor.focus({preventScroll:true});
+  if(r){ try{ s.removeAllRanges(); s.addRange(r); }catch(e){} }
+}
+
+function exec(cmd,val){ restore(true); document.execCommand(cmd,false,val||null); saveRange(); refreshBtns(); checkOverflow(); }
+
+function wrapInline(styles,quiet){
+  restore(true);
+  const s=getSelection();
+  if(!s.rangeCount || s.isCollapsed){ if(!quiet) toast('먼저 카드 안에서 바꿀 글자를 드래그해 주세요'); return false; }
+  const r=s.getRangeAt(0), span=document.createElement('span');
+  Object.assign(span.style,styles);
+  try{ r.surroundContents(span); }
+  catch(e){ const f=r.extractContents(); span.appendChild(f); r.insertNode(span); }
+  const nr=document.createRange(); nr.selectNodeContents(span);
+  s.removeAllRanges(); s.addRange(nr); lastRange=nr.cloneRange(); lastPick=nr.cloneRange();
+  checkOverflow(); return span;
+}
+function blocksInSelection(){
+  const s=getSelection();
+  if(!s.rangeCount || !editor.contains(s.anchorNode)) return [];
+  const r=s.getRangeAt(0), out=[];
+  Array.from(editor.children).forEach(ch=>{ if(r.intersectsNode(ch)) out.push(ch); });
+  return out;
+}
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast';
+    t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:rgba(40,50,75,.92);color:#fff;'
+      +'font-size:12px;padding:9px 16px;border-radius:10px;z-index:99;transition:opacity .3s;pointer-events:none;';
+    document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.opacity='0',1800);
+}
+function applyBlock(prop,val){
+  restore(true);
+  const bl=blocksInSelection();
+  if(bl.length) bl.forEach(b=>b.style[prop]=val);
+  else editor.style[prop]=val;
+  checkOverflow();
+}
+
+document.querySelectorAll('.tb[data-cmd]').forEach(b=>{
+  b.onmousedown=e=>e.preventDefault();
+  b.onclick=()=>exec(b.dataset.cmd);
+});
+function refreshBtns(){
+  document.querySelectorAll('.tb[data-cmd]').forEach(b=>{
+    let on=false; try{ on=document.queryCommandState(b.dataset.cmd); }catch(e){}
+    b.classList.toggle('act',on);
+  });
+  // show the size of whatever is selected (unless the user is typing in the box)
+  if(document.activeElement!==$('tSize')){
+    const s=getSelection();
+    if(s.rangeCount && editor.contains(s.anchorNode)){
+      let n=s.anchorNode; if(n.nodeType===3) n=n.parentElement;
+      if(n) $('tSize').value=Math.round(parseFloat(getComputedStyle(n).fontSize)*edScale*10)/10;
+    }
+  }
+}
+document.addEventListener('selectionchange',()=>{ if(document.activeElement===editor) refreshBtns(); });
+
+$('tFont').onchange=e=>{ if(e.target.value){ wrapInline({fontFamily:e.target.value}); e.target.value=''; } };
+function applyTSize(){
+  const v=parseFloat($('tSize').value);
+  if(!isFinite(v)||v<=0) return;
+  const sp=wrapInline({fontSize:(v/edScale)+'px'});   // store intent, compensate for the visual scale
+  if(sp) sp.dataset.fs=v;
+}
+$('tSize').addEventListener('change',applyTSize);
+$('tSize').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); applyTSize(); } });
+$('tLh').onchange=e=>{ if(e.target.value){ applyBlock('lineHeight',e.target.value); e.target.value=''; } };
+$('tLs').onchange=e=>{ if(e.target.value){
+  const v=parseFloat(e.target.value)/edScale+'px';
+  if(!wrapInline({letterSpacing:v},true)) applyBlock('letterSpacing',v);
+  e.target.value=''; } };
+/* ============ colour popover =====================================================
+   One click on the button re-applies the last colour; the ▼ opens recents + palette,
+   so repeating a colour across several places is a single click. */
+const PRESETS=['#000000','#3a3a3a','#6b6b6b','#9a9a9a','#c9c9c9','#ffffff','#8b5e34','#c08457',
+  '#c0392b','#e05c4a','#f08a5d','#f4b942','#ffd966','#fff3b0','#7bb661','#4a8f5b',
+  '#2f6f6f','#59a5b5','#7fb8e0','#3f6fb5','#2b3f7a','#6c5ce7','#9b7fd8','#c9a3ff',
+  '#d94f8a','#f08fb0','#ffc9dd','#5b4a45','#39435c','#1b1c22','#f5efe6','#fbf7f0'];
+let cpRecents=JSON.parse(localStorage.getItem('ssulColors')||'[]');
+let cpPick=null, cpAllowNone=false;
+const pop=$('colorPop');
+
+function pushRecent(c){
+  c=c.toLowerCase();
+  cpRecents=[c,...cpRecents.filter(x=>x!==c)].slice(0,16);
+  try{ localStorage.setItem('ssulColors',JSON.stringify(cpRecents)); }catch(e){}
+  drawRecents();
+}
+function drawRecents(){
+  $('cpRecent').innerHTML=cpRecents.length
+    ? cpRecents.map(c=>`<span class="sw2" data-c="${c}" style="background:${c}" title="${c}"></span>`).join('')
+    : `<span style="grid-column:1/-1;font-size:10px;color:#c2cadb;">아직 없어요</span>`;
+}
+$('cpPresets').innerHTML=PRESETS.map(c=>`<span class="sw2" data-c="${c}" style="background:${c}" title="${c}"></span>`).join('');
+drawRecents();
+
+function openColorPop(anchor,cur,onPick,allowNone){
+  cpPick=onPick; cpAllowNone=!!allowNone;
+  const r=anchor.getBoundingClientRect();
+  pop.classList.add('show');
+  pop.style.left=Math.min(window.innerWidth-226,Math.max(8,r.left-90))+'px';
+  pop.style.top=(r.bottom+8)+'px';
+  $('cpHex').value=cur||'';
+  $('cpNative').value=/^#[0-9a-f]{6}$/i.test(cur||'')?cur:'#000000';
+  $('cpNone').style.display=allowNone?'block':'none';
+}
+function closeColorPop(){ pop.classList.remove('show'); cpPick=null; }
+pop.addEventListener('mousedown',e=>{ if(e.target.tagName!=='INPUT') e.preventDefault(); });
+document.addEventListener('mousedown',e=>{
+  if(pop.classList.contains('show') && !pop.contains(e.target) && !e.target.closest('.tcbtn') && !e.target.closest('.cc'))
+    closeColorPop();
+});
+pop.addEventListener('click',e=>{
+  const sw=e.target.closest('.sw2');
+  if(sw && cpPick){ const c=sw.dataset.c; pushRecent(c); cpPick(c); }
+});
+$('cpApply').onclick=()=>{ const v=$('cpHex').value.trim(); if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)&&cpPick){ pushRecent(v); cpPick(v);} };
+$('cpHex').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); $('cpApply').click();} });
+$('cpNative').oninput=e=>{ if(cpPick){ pushRecent(e.target.value); cpPick(e.target.value);} };
+$('cpNone').onclick=()=>{ if(cpPick) cpPick('transparent'); };
+
+/* --- text colour / highlighter split buttons --- */
+let foreColor='#39435c', backColor='#ffe9a8';
+function setFore(c){ foreColor=c; $('tForeBar').style.background=c; exec('foreColor',c); }
+function setBack(c){ backColor=c; $('tBackBar').style.background=(c==='transparent'?'#eee':c);
+  if(c==='transparent'){ exec('hiliteColor','transparent'); } else exec('hiliteColor',c); }
+['tForeApply','tForeOpen','tBackApply','tBackOpen'].forEach(id=>$(id).onmousedown=e=>e.preventDefault());
+$('tForeApply').onclick=()=>setFore(foreColor);
+$('tBackApply').onclick=()=>setBack(backColor);
+$('tForeOpen').onclick=()=>openColorPop($('tForeOpen'),foreColor,c=>setFore(c),false);
+$('tBackOpen').onclick=()=>openColorPop($('tBackOpen'),backColor,c=>setBack(c),true);
+$('tQuote').onclick=()=>{ restore(true); document.execCommand('formatBlock',false,'blockquote'); checkOverflow(); };
+$('tClear').onclick=()=>{ exec('removeFormat'); applyBlock('lineHeight',''); };
+$('tImg').onclick=()=>{ saveRange(); $('imgFile').click(); };
+$('imgFile').onchange=()=>{
+  const f=$('imgFile').files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    restore();
+    document.execCommand('insertHTML',false,
+      `<img src="${ev.target.result}" draggable="false" style="width:100%;border-radius:10px;object-fit:cover;object-position:50% 50%;">`);
+    setTimeout(()=>{ paint(); checkOverflow(); },80);
+  };
+  rd.readAsDataURL(f); $('imgFile').value='';
+};
+
+/* ============ image editing (size / crop ratio / pan / align) ============ */
+const handles=$('imgHandles');
+let dragH=null;
+function selectImg(img){
+  if(selImg) selImg.classList.remove('selimg');
+  selImg=img;
+  if(!img){ $('imgBar').classList.remove('show'); handles.classList.remove('show'); return; }
+  img.classList.add('selimg');
+  img.setAttribute('draggable','false');
+  $('imgBar').classList.add('show');
+  const st=img.style;
+  const w=Math.round(parseFloat(st.width)||100);
+  $('imW').value=w; $('imWNum').value=w;
+  const ar=st.aspectRatio? st.aspectRatio.replace(/\s/g,'') : '';
+  $('imRatio').value=['1/1','4/3','3/4','16/9','9/16'].includes(ar) ? ar : (ar? 'custom':'');
+  const rad=Math.round(parseFloat(st.borderRadius)||0);
+  $('imRad').value=Math.min(80,rad); $('imRadNum').value=rad;
+  $('imAlign').value = st.marginLeft==='0px' ? 'left' : (st.marginRight==='0px' ? 'right' : 'center');
+  handles.classList.add('show');
+  positionHandles();
+}
+editor.addEventListener('click',e=>{
+  if(e.target.tagName==='IMG') selectImg(e.target);
+  else selectImg(null);
+});
+function applyImg(){
+  if(!selImg) return;
+  const w=+$('imW').value;
+  selImg.style.width=w+'%';
+  const r=$('imRatio').value;
+  if(r==='custom'){ /* keep whatever the drag handles produced */ }
+  else if(r){ selImg.style.aspectRatio=r; selImg.style.objectFit='cover'; selImg.style.height='auto'; }
+  else { selImg.style.aspectRatio=''; selImg.style.objectFit=''; }
+  selImg.style.borderRadius=(+$('imRadNum').value||0)+'px';
+  const a=$('imAlign').value;
+  selImg.style.display='block';
+  selImg.style.marginLeft = a==='left'?'0':'auto';
+  selImg.style.marginRight= a==='right'?'0':'auto';
+  checkOverflow(); positionHandles();
+}
+$('imW').addEventListener('input',()=>{ $('imWNum').value=$('imW').value; applyImg(); });
+$('imWNum').addEventListener('input',()=>{ const v=+$('imWNum').value;
+  if(isFinite(v)&&v>0){ $('imW').value=Math.min(100,Math.max(10,v)); applyImg(); } });
+$('imRad').addEventListener('input',()=>{ $('imRadNum').value=$('imRad').value; applyImg(); });
+$('imRadNum').addEventListener('input',()=>{ const v=+$('imRadNum').value;
+  if(isFinite(v)&&v>=0){ $('imRad').value=Math.min(80,v); applyImg(); } });
+['imRatio','imAlign'].forEach(id=>$(id).addEventListener('input',applyImg));
+$('imReset').onclick=()=>{ if(selImg){ selImg.style.objectPosition='50% 50%'; } };
+$('imDel').onclick=()=>{ if(selImg){ selImg.remove(); selectImg(null); paint(); checkOverflow(); } };
+
+/* ---- Naver-blog style drag handles ---- */
+function positionHandles(){
+  if(!selImg || !handles.classList.contains('show')) return;
+  const r=selImg.getBoundingClientRect();
+  const box=handles.querySelector('.hbox');
+  box.style.cssText=`position:absolute;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;border:1.5px solid #6f9ade;border-radius:4px;`;
+  const pos={nw:[r.left,r.top],ne:[r.right,r.top],sw:[r.left,r.bottom],se:[r.right,r.bottom],
+             s:[r.left+r.width/2,r.bottom]};
+  handles.querySelectorAll('.h').forEach(h=>{
+    const [x,y]=pos[h.dataset.h];
+    h.style.left=x+'px'; h.style.top=y+'px';
+  });
+  const tip=handles.querySelector('.tip');
+  tip.style.left=(r.left+r.width/2)+'px';
+  tip.style.top=(r.top-14)+'px';
+  tip.textContent=`${Math.round(r.width)} × ${Math.round(r.height)} px · ${Math.round(parseFloat(selImg.style.width)||100)}%`;
+  tip.style.display=dragH?'block':'none';
+}
+(function tick(){ positionHandles(); requestAnimationFrame(tick); })();
+
+handles.querySelectorAll('.h').forEach(h=>{
+  h.addEventListener('mousedown',e=>{
+    if(!selImg) return;
+    e.preventDefault(); e.stopPropagation();
+    const r=selImg.getBoundingClientRect();
+    dragH={dir:h.dataset.h,x:e.clientX,y:e.clientY,w:r.width,h:r.height,
+           pct:parseFloat(selImg.style.width)||100};
+    document.body.style.userSelect='none';
+  });
+});
+window.addEventListener('mousemove',e=>{
+  if(!dragH||!selImg) return;
+  const dx=e.clientX-dragH.x, dy=e.clientY-dragH.y;
+  if(dragH.dir==='s'){
+    // drag the bottom edge -> change the crop height (aspect ratio)
+    const nh=Math.max(30,dragH.h+dy);
+    selImg.style.aspectRatio=(dragH.w/nh).toFixed(4);
+    selImg.style.objectFit='cover'; selImg.style.height='auto';
+    $('imRatio').value='custom';
+  }else{
+    const sign=(dragH.dir==='se'||dragH.dir==='ne')?1:-1;
+    const nw=Math.max(24,dragH.w+dx*sign);
+    const full=editor.clientWidth*edScale;          // visible width of one full-width image
+    const pct=Math.max(5,Math.min(100,nw/full*100));
+    selImg.style.width=pct.toFixed(1)+'%';
+    $('imW').value=Math.round(Math.min(100,Math.max(10,pct)));
+    $('imWNum').value=Math.round(pct);
+  }
+  checkOverflow();
+});
+window.addEventListener('mouseup',()=>{
+  if(dragH){ dragH=null; document.body.style.userSelect=''; checkOverflow(); }
+});
+
+/* drag inside a cropped image to choose which part shows */
+let panning=null;
+editor.addEventListener('mousedown',e=>{
+  if(e.target.tagName!=='IMG') return;
+  selectImg(e.target);
+  const st=getComputedStyle(e.target);
+  if(st.objectFit!=='cover') return;               // only cropped images can pan
+  e.preventDefault();
+  const cur=(e.target.style.objectPosition||'50% 50%').split(/\s+/);
+  panning={img:e.target,x:e.clientX,y:e.clientY,px:parseFloat(cur[0])||50,py:parseFloat(cur[1])||50};
+});
+window.addEventListener('mousemove',e=>{
+  if(!panning) return;
+  const r=panning.img.getBoundingClientRect();
+  const nx=Math.max(0,Math.min(100,panning.px-(e.clientX-panning.x)/r.width*100));
+  const ny=Math.max(0,Math.min(100,panning.py-(e.clientY-panning.y)/r.height*100));
+  panning.img.style.objectPosition=`${nx.toFixed(1)}% ${ny.toFixed(1)}%`;
+});
+window.addEventListener('mouseup',()=>{ panning=null; });
+
+/* paste as plain text (keeps card clean) */
+editor.addEventListener('paste',e=>{
+  const raw=(e.clipboardData||window.clipboardData).getData('text/plain');
+  if(raw){
+    e.preventDefault();
+    // 붙여넣은 텍스트에 빈 줄(연속 엔터)이 있어도 문단 사이 간격이
+    // 기본값(.95em) 이상으로 벌어지지 않도록 연속 줄바꿈을 하나로 합침
+    const t=raw.replace(/\n{2,}/g,'\n');
+    document.execCommand('insertText',false,t);
+  }
+});
+
+/* ============ export =============================================================
+   The card is rendered through an SVG <foreignObject>, i.e. by the browser's OWN
+   layout engine, so letter-spacing / line-height / custom fonts come out exactly
+   as they look on screen. html2canvas is only a fallback.
+   ================================================================================ */
+const STYLE_SKIP=new Set(['cursor','pointer-events','user-select','-webkit-user-select',
+  'caret-color','transition','transition-property','transition-duration','animation',
+  'animation-name','will-change','scroll-behavior','overflow-anchor','touch-action']);
+
+function inlineStyles(src,dst){
+  const cs=getComputedStyle(src);
+  let css='';
+  for(let i=0;i<cs.length;i++){
+    const p=cs[i];
+    if(p.startsWith('--')||STYLE_SKIP.has(p)) continue;
+    const v=cs.getPropertyValue(p);
+    if(v==='') continue;
+    css+=p+':'+v+';';
+  }
+  dst.setAttribute('style',css);
+  dst.removeAttribute('class'); dst.removeAttribute('id');
+  const a=src.children,c=dst.children;
+  for(let i=0;i<a.length&&i<c.length;i++) inlineStyles(a[i],c[i]);
+}
+
+async function renderCard(scale){
+  const r=frame.getBoundingClientRect();
+  const w=Math.round(r.width), h=Math.round(r.height);
+  const clone=frame.cloneNode(true);
+  inlineStyles(frame,clone);
+  // the clone must sit at 0,0 with no shadow bleeding outside the canvas
+  clone.style.margin='0'; clone.style.position='relative';
+  clone.style.left='0'; clone.style.top='0'; clone.style.boxShadow='none';
+  clone.style.width=w+'px'; clone.style.height=h+'px';
+
+  const holder=document.createElement('div');
+  holder.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+  holder.style.cssText=`width:${w}px;height:${h}px;`;
+  holder.appendChild(clone);
+  const markup=new XMLSerializer().serializeToString(holder);
+
+  const fontCss=customFonts.map(f=>`@font-face{font-family:"${f.name}";src:url(${f.dataUrl});}`).join('');
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w*scale}" height="${h*scale}" viewBox="0 0 ${w} ${h}">`
+    +(fontCss?`<defs><style type="text/css">${fontCss}</style></defs>`:'')
+    +`<foreignObject x="0" y="0" width="${w}" height="${h}">${markup}</foreignObject></svg>`;
+
+  const img=new Image();
+  img.decoding='sync';
+  await new Promise((res,rej)=>{
+    img.onload=res; img.onerror=()=>rej(new Error('svg render failed'));
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  });
+  const cv=document.createElement('canvas');
+  cv.width=w*scale; cv.height=h*scale;
+  const ctx=cv.getContext('2d');
+  ctx.drawImage(img,0,0,cv.width,cv.height);
+  // a fully blank result means the browser refused the foreignObject → signal fallback
+  const probe=ctx.getImageData(Math.floor(cv.width/2),Math.floor(cv.height/2),1,1).data;
+  if(probe[3]===0) throw new Error('empty render');
+  return cv;
+}
+
+$('saveBtn').onclick=async()=>{
+  const b=$('saveBtn'); const old=b.textContent; b.disabled=true; b.textContent='저장 중...';
+  const ce=editor.getAttribute('contenteditable');
+  const st=editor.scrollTop;
+  try{
+    // 1) never export a clipped card
+    commitPage();
+    if(isOverflowing()){
+      if(pageMode){ buildPages(); toast('편집한 내용이 넘쳐서 다시 나눴어요'); }
+      else if(ovMode==='pages'){ buildPages(); toast('내용이 넘쳐서 여러 장으로 나눴어요'); }
+      else autoShrink();
+    }
+    // the blue selection outline lives inside the card, so hide it before capturing
+    if(selImg) selImg.classList.remove('selimg');
+    handles.classList.remove('show');
+    editor.setAttribute('contenteditable','false');
+    editor.scrollTop=0;
+    await (document.fonts?document.fonts.ready:Promise.resolve());
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    const nm=($('workName').value||'card').replace(/[^\w가-힣_-]+/g,'_');
+    const shoot=async(fileName)=>{
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      let canvas;
+      try{ canvas=await renderCard(3); }
+      catch(e){ canvas=await html2canvas(frame,{scale:3,backgroundColor:null,useCORS:true}); }
+      const a=document.createElement('a');
+      a.download=fileName; a.href=canvas.toDataURL('image/png'); a.click();
+    };
+
+    if(pageMode && $('saveAll').checked){
+      const keep=curPage;
+      for(let i=0;i<pages.length;i++){
+        curPage=i; showPage(); editor.scrollTop=0;
+        b.textContent=`저장 중... (${i+1}/${pages.length})`;
+        await shoot(`${nm}_${String(i+1).padStart(2,'0')}.png`);
+        await new Promise(r=>setTimeout(r,350));   // give the browser time between downloads
+      }
+      curPage=keep; showPage();
+      toast(`${pages.length}장을 모두 저장했어요`);
+    }else{
+      await shoot(`${nm}${pageMode?'_'+String(curPage+1).padStart(2,'0'):''}.png`);
+    }
+  }catch(err){ alert('저장 실패: '+err.message); }
+  finally{
+    editor.setAttribute('contenteditable',ce); editor.scrollTop=st;
+    if(selImg){ selImg.classList.add('selimg'); handles.classList.add('show'); }
+    b.disabled=false; b.textContent=old;
+  }
+};
+
+paint();
+setTimeout(paint,120);
+</script>
+</body>
+</html>
